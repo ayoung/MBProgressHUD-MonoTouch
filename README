@@ -1,0 +1,13 @@
+Okay, so there’s a built-in Progress HUD that looks cool. But it’s not documented. So I found one at:
+http://github.com/jdg/MBProgressHUD and decided to port it to monotouch.
+
+To use: (I recommend keeping a reference to the object elsewhere in your code, so you can dispose of it properly)
+
+1	var hud = new MBProgressHUD (this.View.Window);
+2	hud.Mode = MBProgressHUDMode.Indeterminate;
+3	hud.TitleText = "Loading";
+4	hud.DetailText = "We'll be back shortly...";
+5	this.View.Window.AddSubview(hud);
+6	    hud.Show (true);
+
+That’s all! It’s pretty snazzy, IMO. But the credit all goes to someone who isn’t me. Anyhow, here’s the source. Note that it’s designed to sort of attach to a background process, and that part isn’t quite done. However, the Show(animated) and Hide(animated) work just fine. That’s enough for me.
