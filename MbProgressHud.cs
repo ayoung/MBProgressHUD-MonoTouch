@@ -41,10 +41,13 @@ namespace RedPlum
 		public MBProgressHUDMode Mode {
 			get {
 				if (!_mode.HasValue) {
-					_mode  = MBProgressHUDMode.Indeterminate;
-					this.BeginInvokeOnMainThread (UpdateIndicators);
-					this.BeginInvokeOnMainThread (SetNeedsLayout);
-					this.BeginInvokeOnMainThread (this.SetNeedsDisplay);
+					_mode = MBProgressHUDMode.Indeterminate;
+					EnsureInvokedOnMainThread (() =>
+					{
+						UpdateIndicators ();
+						SetNeedsLayout ();
+						SetNeedsDisplay ();
+					});
 				}
 				return _mode.Value;
 			}
@@ -54,9 +57,12 @@ namespace RedPlum
 					return;
 				}
 				_mode = value;
-				this.BeginInvokeOnMainThread (UpdateIndicators);
-				this.BeginInvokeOnMainThread (SetNeedsLayout);
-				this.BeginInvokeOnMainThread (this.SetNeedsDisplay);
+				EnsureInvokedOnMainThread (() =>
+				{
+					UpdateIndicators ();
+					SetNeedsLayout ();
+					SetNeedsDisplay ();
+				});
 			}
 		}
 		private NSAction MethodForExecution { get; set; }
@@ -75,9 +81,11 @@ namespace RedPlum
 				if (_progress != value)
 					_progress = value;
 				if (Mode == MBProgressHUDMode.Determinate) {
-					this.BeginInvokeOnMainThread (UpdateProgress);
-					this.BeginInvokeOnMainThread (this.SetNeedsDisplay);
-					
+					EnsureInvokedOnMainThread (() =>
+					{
+						UpdateProgress ();
+						SetNeedsDisplay ();
+					});
 				}
 			}
 		}
@@ -88,9 +96,12 @@ namespace RedPlum
 			set {
 				if (_titleText != value) {
 					_titleText = value;
-					this.BeginInvokeOnMainThread (() => Label.Text = value);
-					this.BeginInvokeOnMainThread (SetNeedsLayout);
-					this.BeginInvokeOnMainThread (this.SetNeedsDisplay);
+					EnsureInvokedOnMainThread (() =>
+					{
+						Label.Text = _titleText;
+						SetNeedsLayout ();
+						SetNeedsDisplay ();
+					});
 				}
 			}
 		}
@@ -101,9 +112,12 @@ namespace RedPlum
 			set {
 				if (_detailText != value) {
 					_detailText = value;
-					this.BeginInvokeOnMainThread (() => DetailsLabel.Text = value);
-					this.BeginInvokeOnMainThread (SetNeedsLayout);
-					this.BeginInvokeOnMainThread (this.SetNeedsDisplay);
+					EnsureInvokedOnMainThread (() =>
+					{
+						DetailsLabel.Text = _detailText;
+						SetNeedsLayout ();
+						SetNeedsDisplay ();
+					});
 				}
 			}
 		}
@@ -171,6 +185,13 @@ namespace RedPlum
 		void Initialize ()
 		{
 			this.Mode = MBProgressHUDMode.Indeterminate;
+			
+			// Add label
+			Label = new UILabel (this.Bounds);
+			
+			// Add details label
+			DetailsLabel = new UILabel (this.Bounds);
+			
 			this.TitleText = null;
 			this.DetailText = null;
 			this.Opacity = 0.9f;
@@ -190,15 +211,18 @@ namespace RedPlum
 			// Make invisible for now
 			this.Alpha = 0.0f;
 			
-			// Add label
-			Label = new UILabel (this.Bounds);
-			
-			// Add details label
-			DetailsLabel = new UILabel (this.Bounds);
-			
 			TaskInProgress = false;
 		}
-
+		
+		private void EnsureInvokedOnMainThread (Action action)
+		{
+			if (IsMainThread ())
+			{
+				action ();
+				return;
+			}
+			this.BeginInvokeOnMainThread (() => action());
+		}
 
 		public void Dispose ()
 		{
@@ -313,7 +337,16 @@ namespace RedPlum
 				}
 			}
 		}
-
+		
+		private static IntPtr GetClassHandle (string clsName)
+		{
+			return (new Class(clsName)).Handle;
+		}
+		
+		private static bool IsMainThread() {
+			return Messaging.bool_objc_msgSend(GetClassHandle("NSThread"), new Selector("isMainThread").Handle);
+		}
+		
 		#endregion
 
 		#region Showing and execution
@@ -403,7 +436,7 @@ namespace RedPlum
 			this.Alpha = 0.0f;
 			
 			if (HudWasHidden != null) {
-				HudWasHidden(this, EventArgs.Empty);
+				HudWasHidden (this, EventArgs.Empty);
 			}
 		}
 
@@ -517,6 +550,5 @@ namespace RedPlum
 		}
 		
 	}
-	
 }
 
